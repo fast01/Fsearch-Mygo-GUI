@@ -285,6 +285,53 @@ func TestRelevanceTooltipExplainsReset(t *testing.T) {
 	}
 }
 
+func TestSpaceQuickLooksSelectedResult(t *testing.T) {
+	a := newApp(&fake{})
+	a.query = "main"
+	a.rows = nameRows(NameResult{Hits: sampleHits()})
+	a.resort()
+	a.selected = 0
+	var previews []string
+	a.preview = func(p string) error {
+		previews = append(previews, p)
+		return nil
+	}
+
+	tt := ui.NewTester(a.view, 980, 640)
+	tt.Frame()
+	if err := tt.Click("main.rs"); err != nil {
+		t.Fatalf("%v; texts: %q", err, tt.Texts())
+	}
+	tt.Frame()
+	if _, ok := a.path(a.selected); !ok {
+		t.Fatal("click did not select a row")
+	}
+
+	tt.Key(0, ui.KeyDown)
+	if len(previews) != 0 {
+		t.Fatalf("arrow key previewed %q", previews)
+	}
+	want, ok := a.path(a.selected)
+	if !ok {
+		t.Fatal("arrow key lost the selection")
+	}
+	tt.Key(0, ui.KeySpace)
+	if len(previews) != 1 || previews[0] != want {
+		t.Fatalf("Space previewed %q, want [%s]", previews, want)
+	}
+
+	// The search field keeps its space: the results handler is not in its
+	// focus chain.
+	if err := tt.Click("Search files"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Key(0, ui.KeySpace)
+	if len(previews) != 1 {
+		t.Fatalf("space in the search field previewed %q", previews[1:])
+	}
+}
+
 func TestSplitGrep(t *testing.T) {
 	p, f := splitGrep("ext:rs in:~/Developer apply_dir")
 	if p != "apply_dir" || f != "ext:rs in:~/Developer" {

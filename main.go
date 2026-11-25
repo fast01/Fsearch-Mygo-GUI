@@ -48,6 +48,7 @@ type row struct {
 // searches run elsewhere and change it through win.Update.
 type app struct {
 	searcher Searcher
+	preview  func(string) error
 	win      *mygo.Window
 
 	query string
@@ -77,7 +78,7 @@ type app struct {
 }
 
 func newApp(s Searcher) *app {
-	a := &app{searcher: s, selected: -1}
+	a := &app{searcher: s, selected: -1, preview: mygo.Shell.PreviewItem}
 	a.table.Selected = &a.selected
 	a.table.Selection = &a.chosen
 	a.table.Sort = &a.sort
@@ -241,7 +242,15 @@ func (a *app) results(c *ui.Context) ui.Element {
 			a.open(p)
 		}
 	}
-	return table.ContextMenu(a.resultMenu)
+	return table.ContextMenu(a.resultMenu).HandleInput(func(ev ui.InputEvent) bool {
+		// Finder's space bar is Quick Look, not paging. Only take the key
+		// when the results table itself has the focus and a row to show;
+		// text fields still type their spaces.
+		if ev.Kind != ui.InputKeyDown || ev.Mods != 0 || ev.Repeat || ev.Key != ui.KeySpace {
+			return false
+		}
+		return a.quickLook()
+	})
 }
 
 // resultMenu fills m with the items acting on the chosen rows, which a
@@ -339,7 +348,7 @@ func (a *app) hint(c *ui.Context) ui.Element {
 
 			ui.Divider(c)
 			hintHeading(c, "RESULTS")
-			ui.Text(c, "Double-click or press Enter to open. Click a column header to sort; Relevance returns to fsearch's ranking. Cmd/Shift-click selects several rows; right-click opens, reveals in Finder or copies their paths.").TextColor(t.TextMuted).MaxWidth(760)
+			ui.Text(c, "Double-click or press Enter to open, or Space to Quick Look the selected file. Click a column header to sort; Relevance returns to fsearch's ranking. Cmd/Shift-click selects several rows; right-click opens, reveals in Finder or copies their paths.").TextColor(t.TextMuted).MaxWidth(760)
 
 			ui.Divider(c)
 			hintHeading(c, "FIRST RUN")
@@ -565,6 +574,19 @@ func (a *app) path(i int) (string, bool) {
 		return "", false
 	}
 	return a.sorted[i].Path, true
+}
+
+func (a *app) quickLook() bool {
+	p, ok := a.path(a.selected)
+	if !ok {
+		return false
+	}
+	if err := a.preview(p); err != nil {
+		a.err = err.Error()
+	} else {
+		a.err = ""
+	}
+	return true
 }
 
 func (a *app) open(p string) {
