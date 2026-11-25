@@ -266,6 +266,25 @@ func TestRelevanceRestoresSearchOrder(t *testing.T) {
 	}
 }
 
+func TestRelevanceTooltipExplainsReset(t *testing.T) {
+	a := newApp(&fake{})
+	a.rows = nameRows(NameResult{Hits: sampleHits()})
+	a.sort = ui.SortOrder{Column: "name"}
+	a.resort()
+
+	tt := ui.NewTester(a.view, 980, 640)
+	tt.Frame()
+	r, ok := tt.Find("Relevance")
+	if !ok {
+		t.Fatal("Relevance button not found")
+	}
+	tt.Move(r.X+r.W/2, r.Y+r.H/2)
+	tt.Advance(700 * time.Millisecond)
+	if !tt.HasText("Reset sort: back to fsearch's relevance order") {
+		t.Fatalf("Relevance tooltip missing; texts: %q", tt.Texts())
+	}
+}
+
 func TestSplitGrep(t *testing.T) {
 	p, f := splitGrep("ext:rs in:~/Developer apply_dir")
 	if p != "apply_dir" || f != "ext:rs in:~/Developer" {

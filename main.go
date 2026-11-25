@@ -160,7 +160,7 @@ func (a *app) toolbar(c *ui.Context) ui.Element {
 		// Column sorting is useful, but MyGo's single-sort header only
 		// toggles ascending/descending: there is no click that goes back to
 		// the order fsearch ranked the results in. Keep a visible way out.
-		if ui.Button(c.Key("relevance"), "Relevance").Label("Restore fsearch relevance order").Disabled(a.sort.Column == "").Clicked() {
+		if ui.Button(c.Key("relevance"), "Relevance").Label("Reset sort to fsearch's relevance order").Tooltip("Reset sort: back to fsearch's relevance order").Disabled(a.sort.Column == "").Clicked() {
 			a.sort = ui.SortOrder{}
 			a.resort()
 		}
