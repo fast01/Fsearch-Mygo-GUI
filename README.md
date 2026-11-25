@@ -36,10 +36,17 @@ index fresh after the app closes.
 ## Run
 
 ```sh
+./build-universal.sh  # test + build arm64 and universal (Intel + Apple Silicon) apps/DMGs
 go tool mygo dev      # live reload
 go tool mygo build    # build/darwin-arm64/*.app and a .dmg
 go test -race ./...   # view tests, no window and no daemon needed
 ```
+
+`build-universal.sh` uses the locally installed Go (`GOTOOLCHAIN=local`; it
+never downloads a toolchain), merges and signs `resources/fsearch` from the
+per-architecture binaries, and sets `MYGO_LDFLAGS=-macos=12.0.0` so the app also
+launches on macOS 12. The app's empty window shows the same query cheat sheet
+as the examples below.
 
 ## Things to know
 
@@ -49,10 +56,23 @@ go test -race ./...   # view tests, no window and no daemon needed
   the index is ready. Content search becomes available after the names.
 - **Full Disk Access**: without it fsearch skips protected folders. Grant it to
   the `fsearch` binary (not this app), as fsearch's README describes.
-- **Query syntax** is fsearch's: `ext:rs main`, `type:image mtime:<7d`,
-  `in:~/Developer readme`, `'exact`, `^prefix`, `suffix$`, `!exclude`. In
-  Content mode, the words that are not filters (`ext:`, `in:`, `type:`, `kind:`,
-  `size:`, `mtime:`, `re:`, `path:`) are the text searched for.
+- **Close hides, Quit exits**: closing the window hides it to the menu bar and
+  removes the Dock icon; ⌘⇧Space (or the menu-bar icon) shows it again and
+  restores the Dock icon. The fsearch daemon keeps indexing while hidden.
+- **Query syntax** is fsearch's. Examples:
+  `fsearch 'readme in:~/Developer'`,
+  `fsearch 'type:image size:>5mb mtime:<7d'`,
+  `fsearch 'ext:rs regex:fn\s+\w+_dir'`,
+  `fsearch 'sym:apply_dir'`,
+  `fsearch 'src/**/*.{c,h} !test/ init'`,
+  `fsearch 'git:modified in:~/Developer/app'`.
+  Words are fuzzy anywhere in a name (two typos in names of 8+ letters);
+  several words can spell one name, and accented names match however they were
+  stored. Also `'exact`, `^prefix`, `suffix$` and `!exclude`. Filters: `ext:`,
+  `type:`, `kind:`, `in:`, `size:`, `mtime:`, `re:`, `path:`, `grep:`, `regex:`,
+  `sym:`, `limit:` and `git:` (`modified staged untracked clean tracked ignored
+  conflict`). In Content mode, non-filter words are the text searched for;
+  matching is smart-case and regexes match within a line, as in ripgrep.
 - `TestLiveDaemon` runs against a real daemon and is opt-in
   (`FSEARCH_LIVE=1 go test -run TestLiveDaemon -v`) because of the first-run
   crawl above.
@@ -63,6 +83,9 @@ go test -race ./...   # view tests, no window and no daemon needed
 | File | |
 | --- | --- |
 | `main.go` | state, view, search flow (debounce, stale answers dropped) |
+| `shell.go` | global shortcut, menu-bar icon, close-to-tray and Dock icon |
 | `client.go` | fsearch socket client, daemon start-up |
 | `format.go` | sizes, dates, counts |
 | `main_test.go` | view tests with a fake searcher |
+| `build-universal.sh` | one-shot arm64 + universal build and test |
+| `resources/merge-fsearch.sh` | merge and ad-hoc sign the bundled fsearch |

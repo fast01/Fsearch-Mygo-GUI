@@ -82,6 +82,29 @@ func TestSearchByName(t *testing.T) {
 	}
 }
 
+// The empty window is the only cheat sheet many users see, so keep the
+// README's query examples and rules here as well.
+func TestHintCoversFsearchSyntax(t *testing.T) {
+	a := newApp(&fake{})
+	tt := ui.NewTester(a.view, 980, 640)
+	tt.Frame()
+	for _, want := range []string{
+		"fsearch 'readme in:~/Developer'",
+		"type:image size:>5mb mtime:<7d",
+		"ext:rs regex:fn\\s+\\w+_dir",
+		"sym:apply_dir",
+		"src/**/*.{c,h} !test/ init",
+		"git:modified in:~/Developer/app",
+		"mian.rs",
+		"Content mode is smart-case",
+		"removes its Dock icon",
+	} {
+		if !tt.HasText(want) {
+			t.Errorf("missing %q in hint: %q", want, tt.Texts())
+		}
+	}
+}
+
 func TestTypingSearchesOnce(t *testing.T) {
 	f := &fake{hits: sampleHits()}
 	a := newApp(f)
@@ -127,6 +150,48 @@ func TestContentMode(t *testing.T) {
 		if !tt.HasText(want) {
 			t.Errorf("missing %q in %q", want, tt.Texts())
 		}
+	}
+}
+
+// Several matches in one file make several rows with the same path. MyGo
+// requires distinct element keys, so the table cannot key rows by path.
+func TestContentModeDuplicatePaths(t *testing.T) {
+	f := &fake{files: []GrepFile{{
+		Path: "/Users/ada/a.go",
+		Matches: []GrepMatch{
+			{Line: 1, Text: "first"},
+			{Line: 2, Text: "second"},
+		},
+	}}}
+	a := newApp(f)
+	a.mode = modeContent
+	tt := ui.NewTester(a.view, 980, 640)
+	if err := tt.Click("Search files"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Type("first")
+	settle(t, tt, a)
+	if len(a.sorted) != 2 {
+		t.Fatalf("%d rows for two matches in one file, want 2", len(a.sorted))
+	}
+}
+
+// Secondary columns must switch to AccentText on a highlighted row: writing
+// a fixed TextMuted there leaves dark text on MyGo's blue selected row.
+func TestMutedColorOnSelectedRow(t *testing.T) {
+	a := newApp(&fake{})
+	a.sorted = []row{{Key: "a", Path: "/a"}, {Key: "b", Path: "/b"}}
+	a.chosen.Add("b")
+
+	tt := ui.NewTester(a.view, 980, 640)
+	tt.Frame()
+	tm := ui.LightTheme()
+	wantMuted, wantAccent := tm.TextMuted, tm.AccentText
+	if got := a.mutedColor(tm, "a"); got != wantMuted {
+		t.Errorf("unselected row color = %v, want %v", got, wantMuted)
+	}
+	if got := a.mutedColor(tm, "b"); got != wantAccent {
+		t.Errorf("selected row color = %v, want %v", got, wantAccent)
 	}
 }
 
