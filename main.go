@@ -157,6 +157,13 @@ func (a *app) toolbar(c *ui.Context) ui.Element {
 			a.pending = time.Time{}
 			a.startSearch()
 		}
+		// Column sorting is useful, but MyGo's single-sort header only
+		// toggles ascending/descending: there is no click that goes back to
+		// the order fsearch ranked the results in. Keep a visible way out.
+		if ui.Button(c.Key("relevance"), "Relevance").Label("Restore fsearch relevance order").Disabled(a.sort.Column == "").Clicked() {
+			a.sort = ui.SortOrder{}
+			a.resort()
+		}
 		if ui.Segmented(c, &a.mode, "Name", "Content").Label("Search in").Changed() {
 			a.clear()
 			a.sort = ui.SortOrder{}
@@ -332,7 +339,7 @@ func (a *app) hint(c *ui.Context) ui.Element {
 
 			ui.Divider(c)
 			hintHeading(c, "RESULTS")
-			ui.Text(c, "Double-click or press Enter to open. Click a column header to sort. Cmd/Shift-click selects several rows; right-click opens, reveals in Finder or copies their paths.").TextColor(t.TextMuted).MaxWidth(760)
+			ui.Text(c, "Double-click or press Enter to open. Click a column header to sort; Relevance returns to fsearch's ranking. Cmd/Shift-click selects several rows; right-click opens, reveals in Finder or copies their paths.").TextColor(t.TextMuted).MaxWidth(760)
 
 			ui.Divider(c)
 			hintHeading(c, "FIRST RUN")

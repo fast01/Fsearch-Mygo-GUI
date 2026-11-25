@@ -237,6 +237,35 @@ func TestSort(t *testing.T) {
 	}
 }
 
+// MyGo's header click only toggles ascending/descending; Relevance is how the
+// user gets back to the ranking fsearch returned.
+func TestRelevanceRestoresSearchOrder(t *testing.T) {
+	a := newApp(&fake{})
+	a.query = "main"
+	a.rows = nameRows(NameResult{Hits: sampleHits()})
+	a.sort = ui.SortOrder{Column: "name"}
+	a.resort()
+
+	tt := ui.NewTester(a.view, 980, 640)
+	tt.Frame()
+	if err := tt.Click("Relevance"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+
+	if a.sort != (ui.SortOrder{}) {
+		t.Errorf("sort after Relevance = %+v, want none", a.sort)
+	}
+	if len(a.sorted) != len(a.rows) {
+		t.Fatalf("%d rows after Relevance, want %d", len(a.sorted), len(a.rows))
+	}
+	for i := range a.rows {
+		if a.sorted[i].Key != a.rows[i].Key {
+			t.Fatalf("row %d after Relevance = %s, want %s", i, a.sorted[i].Key, a.rows[i].Key)
+		}
+	}
+}
+
 func TestSplitGrep(t *testing.T) {
 	p, f := splitGrep("ext:rs in:~/Developer apply_dir")
 	if p != "apply_dir" || f != "ext:rs in:~/Developer" {

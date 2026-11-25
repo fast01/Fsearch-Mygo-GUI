@@ -6,9 +6,10 @@ the whole-disk file search for macOS, written in Go with
 
 - **Name** mode: fuzzy, typo-tolerant file names as you type.
 - **Content** mode: search inside files through fsearch's trigram index.
-- Sortable, resizable table. Double-click or Enter opens a file; right-click for
-  *Open*, *Reveal in Finder* and *Copy Path*. Cmd/Shift-click chooses several
-  rows, which those actions apply to together.
+- Sortable, resizable table. Click a column header to sort, then **Relevance**
+  to return to fsearch's original ranking. Double-click or Enter opens a file;
+  right-click for *Open*, *Reveal in Finder* and *Copy Path*. Cmd/Shift-click
+  chooses several rows, which those actions apply to together.
 - The status bar shows fsearch's own search time, the index size, and progress
   while content is still being indexed.
 
